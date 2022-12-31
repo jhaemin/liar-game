@@ -97,6 +97,17 @@ input {
   }
 }
 
+button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  line-height: 1;
+
+  svg {
+    transform: translateY(-0.01em);
+  }
+}
+
 @media (hover: hover) {
   input:hover {
     box-shadow: inset 0 0 0 2px var(--active-gray);

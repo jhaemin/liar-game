@@ -16,6 +16,7 @@ specifiers:
   eslint: 8.30.0
   eslint-config-next: 13.1.1
   framer-motion: ^8.0.2
+  framework7-icons-plus: ^1.7.0
   ioredis: ^5.2.4
   jotai: ^1.12.0
   mustache: ^4.2.0
@@ -51,6 +52,7 @@ dependencies:
   eslint: 8.30.0
   eslint-config-next: 13.1.1_lzzuuodtsqwxnvqeq4g4likcqa
   framer-motion: 8.0.2_biqbaboplfbrettd7655fr4n2y
+  framework7-icons-plus: 1.7.0
   ioredis: 5.2.4
   jotai: 1.12.0_react@18.2.0
   mustache: 4.2.0
@@ -1618,6 +1620,11 @@ packages:
       tslib: 2.4.0
     optionalDependencies:
       '@emotion/is-prop-valid': 0.8.8
+    dev: false
+
+  /framework7-icons-plus/1.7.0:
+    resolution: {integrity: sha512-EeV4dLzoCe7p9d4EiV6XDa3w6ninM7HR2+z5WcZ4ZVPJKE+kbeUG1nAZVi1c5PnJ0d8sumVdqRZ9urbVtpnIug==}
+    engines: {node: '>= 0.10.0'}
     dev: false
 
   /fs.realpath/1.0.0:

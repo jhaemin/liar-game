@@ -6,6 +6,7 @@ import { RedisRoom } from '@/types/redis'
 import { GameSocketClient } from '@/types/socket'
 import axios from 'axios'
 import copy from 'copy-to-clipboard'
+import { House } from 'framework7-icons-plus/react'
 import { GetServerSideProps } from 'next'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
@@ -164,6 +165,7 @@ const Room = ({ isRoomAvailable }: RoomProps) => {
         ) : !isRoomReady ? (
           <>
             <div className={styles.nameRegistration}>
+              <h1 className={styles.title}>라이어 게임 방 입장</h1>
               <div className={styles.inputWrapper}>
                 <input
                   className={styles.nameInput}
@@ -183,30 +185,35 @@ const Room = ({ isRoomAvailable }: RoomProps) => {
                   </span>
                 )}
               </div>
-              <button
-                onClick={async () => {
-                  if (routerRoomId === 'create') {
-                    const trimmedName = myName.trim()
+              <div className={styles.actions}>
+                <Link href="/">
+                  <button>취소</button>
+                </Link>
+                <button
+                  onClick={async () => {
+                    if (routerRoomId === 'create') {
+                      const trimmedName = myName.trim()
 
-                    if (!trimmedName) {
-                      dialog().vagabond('이름을 입력해주세요.')
-                      return
+                      if (!trimmedName) {
+                        dialog().vagabond('이름을 입력해주세요.')
+                        return
+                      }
+
+                      const newRoomId = await createRoom()
+                      await router.replace(`/room/${newRoomId}`, undefined, {
+                        shallow: true,
+                      })
+
+                      await joinRoom(newRoomId)
+                    } else {
+                      await joinRoom(routerRoomId)
                     }
-
-                    const newRoomId = await createRoom()
-                    await router.replace(`/room/${newRoomId}`, undefined, {
-                      shallow: true,
-                    })
-
-                    await joinRoom(newRoomId)
-                  } else {
-                    await joinRoom(routerRoomId)
-                  }
-                }}
-                disabled={!myName.trim()}
-              >
-                입장
-              </button>
+                  }}
+                  disabled={!myName.trim()}
+                >
+                  입장
+                </button>
+              </div>
             </div>
           </>
         ) : (
@@ -241,6 +248,11 @@ const Room = ({ isRoomAvailable }: RoomProps) => {
       <div className={styles.bottom}>
         {isRoomReady && (
           <div className={styles.controller}>
+            <Link href="/">
+              <button>
+                <House /> 홈으로
+              </button>
+            </Link>
             <button
               onClick={() => {
                 socket?.emit('nextPhase')

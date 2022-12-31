@@ -218,12 +218,12 @@ const Room = ({ isRoomAvailable }: RoomProps) => {
                 아래 링크를 공유하세요!
                 <br />
                 <span className={styles.roomLink}>
-                  liar-game.com/room/{routerRoomId}
+                  {location.host + location.pathname}
                 </span>
                 <button
                   className="minimal"
                   onClick={() => {
-                    if (copy(`liar-game.com/room/${routerRoomId}`)) {
+                    if (copy(location.host + location.pathname)) {
                       dialog().vagabond('클립보드에 복사되었습니다.')
                     } else {
                       dialog().vagabond('복사에 실패했습니다.')

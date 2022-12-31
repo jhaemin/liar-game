@@ -84,7 +84,7 @@ const createSocketListener =
     })
 
     socket.on('nextPhase', async () => {
-      const roomId = await redis.get(`liarGame:socketId${socket.id}:roomId`)
+      const { roomId } = socket.data
 
       if (!roomId) {
         return
@@ -134,7 +134,7 @@ const createSocketListener =
     })
 
     socket.on('askIfImLiar', async (sessionId) => {
-      const roomId = await redis.get(`liarGame:socketId${socket.id}:roomId`)
+      const { roomId } = socket.data
 
       if (!roomId) {
         return
@@ -156,7 +156,7 @@ const createSocketListener =
     })
 
     socket.on('revealLiar', async () => {
-      const roomId = await redis.get(`liarGame:socketId${socket.id}:roomId`)
+      const { roomId } = socket.data
 
       if (!roomId) {
         return

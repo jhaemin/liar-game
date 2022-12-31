@@ -12,8 +12,7 @@ const createSocketListener =
     console.log(`[SOCKET] connected`)
 
     socket.on('disconnect', async () => {
-      const roomId = await redis.get(`liarGame:socketId${socket.id}:roomId`)
-      await redis.del(`liarGame:socketId${socket.id}:roomId`)
+      const { roomId } = socket.data
 
       console.log(`[SOCKET] Disconnected: ${socket.id}, roomId: ${roomId}`)
 
@@ -62,6 +61,7 @@ const createSocketListener =
       }
 
       socket.join(`liarGame:room:${roomId}`)
+      socket.data.roomId = roomId
 
       room.players.push({
         socketId: socket.id,
@@ -71,8 +71,6 @@ const createSocketListener =
       room.lastUpdatedAt = Date.now()
 
       await setRoom(room)
-
-      await redis.set(`liarGame:socketId${socket.id}:roomId`, roomId)
 
       io.to(`liarGame:room:${roomId}`).emit(
         'updatePlayers',

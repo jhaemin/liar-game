@@ -39,7 +39,9 @@ export type InterServerEvents = {
 /**
  * Socket data
  */
-export type SocketData = {}
+export type SocketData = {
+  roomId: string
+}
 
 export type GameSocketServer = SocketServer<
   ClientToServerEvents,

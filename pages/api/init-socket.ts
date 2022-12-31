@@ -118,6 +118,8 @@ const createSocketListener =
         }
         room.subject = subject
         room.keyword = keyword
+
+        cleanInactiveRooms()
       } else if (room.phase === 'playing') {
         room.phase = 'ended'
       } else if (room.phase === 'ended') {
@@ -130,8 +132,6 @@ const createSocketListener =
       await setRoom(room)
 
       io.to(`liarGame:room:${roomId}`).emit('phase', room.phase)
-
-      cleanInactiveRooms()
     })
 
     socket.on('askIfImLiar', async (sessionId) => {

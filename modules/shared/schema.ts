@@ -4,12 +4,17 @@ export const redisRoomSchema = z.object({
   id: z.string(),
   players: z.array(
     z.object({
-      id: z.string(),
+      socketId: z.string(),
+      sessionId: z.string(),
       name: z.string(),
     })
   ),
-  liar: z.nullable(z.string()),
-  isPlaying: z.boolean(),
+  phase: z.union([
+    z.literal('waiting'),
+    z.literal('playing'),
+    z.literal('ended'),
+  ]),
+  liar: z.nullable(z.object({ sessionId: z.string(), name: z.string() })),
   subject: z.nullable(z.string()),
   keyword: z.nullable(z.string()),
   createdAt: z.number(),

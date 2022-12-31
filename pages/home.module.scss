@@ -1,0 +1,33 @@
+.home {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+
+  min-height: 100vh;
+
+  gap: 20px;
+
+  @supports (-webkit-touch-callout: none) {
+    min-height: -webkit-fill-available;
+  }
+
+  padding: 0 30px;
+}
+
+.hero {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
+.title {
+  font-size: 50px;
+  font-weight: 300;
+}
+
+.titleEng {
+  font-size: 25px;
+  font-weight: 400;
+}

@@ -1,5 +1,8 @@
 import redis, { deleteRoom, getRoom } from './redis'
 
+// const MAX_INACTIVE_TIME = 1_800_000
+const MAX_INACTIVE_TIME = 3000
+
 const cleanInactiveRooms = async () => {
   const roomKeys = await redis.keys('liarGame:room:*')
 
@@ -18,7 +21,7 @@ const cleanInactiveRooms = async () => {
       ) {
         await Promise.all(
           room.players.map((player) =>
-            redis.del(`liarGame:socketId${player.id}:roomId`)
+            redis.del(`liarGame:socketId${player.socketId}:roomId`)
           )
         )
         await deleteRoom(roomId)

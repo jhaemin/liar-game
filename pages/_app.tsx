@@ -1,8 +1,18 @@
-import '@/styles/globals.css'
+import { getSessionId } from '@/modules/browser/storage'
+import '@/styles/globals.scss'
+import { nanoid } from 'nanoid'
 import type { AppProps } from 'next/app'
 import Head from 'next/head'
+import { useEffect } from 'react'
+import styles from './_app.module.scss'
 
 const App = ({ Component, pageProps }: AppProps) => {
+  useEffect(() => {
+    if (!getSessionId({ initial: true })) {
+      sessionStorage.setItem('sessionId', nanoid(10))
+    }
+  }, [])
+
   return (
     <>
       <Head>
@@ -11,7 +21,9 @@ const App = ({ Component, pageProps }: AppProps) => {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <Component {...pageProps} />
+      <div id="app" className={styles.wrapper}>
+        <Component {...pageProps} />
+      </div>
     </>
   )
 }

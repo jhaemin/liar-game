@@ -1,4 +1,5 @@
 import keywords, { Subject } from '@/data/keywords'
+import cleanInactiveRooms from '@/modules/node/clean-inactive-rooms'
 import redis, { deleteRoom, getRoom, setRoom } from '@/modules/node/redis'
 import { isDev } from '@/modules/shared/is'
 import { NextApiResponseExtended } from '@/types/next'
@@ -8,6 +9,8 @@ import { Server as SocketServer } from 'socket.io'
 
 const createSocketListener =
   (io: GameSocketServer) => async (socket: GameSocket) => {
+    console.log(`[SOCKET] connected`)
+
     socket.on('disconnect', async () => {
       const roomId = await redis.get(`liarGame:socketId${socket.id}:roomId`)
       await redis.del(`liarGame:socketId${socket.id}:roomId`)
@@ -24,34 +27,46 @@ const createSocketListener =
         return
       }
 
-      const memberIndex = room.players.findIndex(({ id }) => id === socket.id)
-      room.players.splice(memberIndex, 1)
+      const playerIndex = room.players.findIndex(
+        ({ socketId }) => socketId === socket.id
+      )
+      room.players.splice(playerIndex, 1)
 
       await setRoom(room)
 
       io.to(`liarGame:room:${roomId}`).emit(
         'updatePlayers',
-        room.players.map(({ id, ...member }) => ({ ...member }))
+        room.players.map(({ socketId, name }) => ({
+          id: socketId,
+          name,
+        }))
       )
 
-      if (room.players.length === 0) {
-        await deleteRoom(roomId)
-      }
+      io.to(`liarGame:room:${roomId}`).emit('phase', room.phase)
     })
 
-    socket.on('joinRoom', async (roomId, name) => {
+    socket.on('joinRoom', async (sessionId, roomId, name) => {
+      console.log(`[SOCKET] joinRoom ${roomId} ${name}`)
       const room = await getRoom(roomId)
 
-      if (!room || room.isPlaying) {
+      if (!room) {
         socket.emit('joinRoomFailed')
+        return
+      }
+
+      const trimmedName = name.trim()
+
+      if (trimmedName.length === 0) {
+        socket.emit('error', '이름을 입력해주세요.')
         return
       }
 
       socket.join(`liarGame:room:${roomId}`)
 
       room.players.push({
-        id: socket.id,
-        name,
+        socketId: socket.id,
+        sessionId,
+        name: trimmedName,
       })
 
       await setRoom(room)
@@ -60,11 +75,16 @@ const createSocketListener =
 
       io.to(`liarGame:room:${roomId}`).emit(
         'updatePlayers',
-        room.players.map(({ id, ...member }) => ({ ...member }))
+        room.players.map(({ socketId, name }) => ({
+          id: socketId,
+          name,
+        }))
       )
+
+      io.to(`liarGame:room:${roomId}`).emit('phase', room.phase)
     })
 
-    socket.on('startGame', async () => {
+    socket.on('nextPhase', async () => {
       const roomId = await redis.get(`liarGame:socketId${socket.id}:roomId`)
 
       if (!roomId) {
@@ -73,29 +93,48 @@ const createSocketListener =
 
       const room = await getRoom(roomId)
 
-      if (!room || room.isPlaying) {
+      if (!room) {
         return
       }
 
-      const liar = room.players[Math.floor(Math.random() * room.players.length)]
-      const subjects = Object.keys(keywords)
-      const subject = subjects[
-        Math.floor(Math.random() * subjects.length)
-      ] as Subject
-      const keyword =
-        keywords[subject][Math.floor(Math.random() * keywords[subject].length)]
+      room.lastUpdatedAt = Date.now()
 
-      room.isPlaying = true
-      room.liar = liar.id
-      room.subject = subject
-      room.keyword = keyword
+      if (room.phase === 'waiting') {
+        const liar =
+          room.players[Math.floor(Math.random() * room.players.length)]
+        const subjects = Object.keys(keywords)
+        const subject = subjects[
+          Math.floor(Math.random() * subjects.length)
+        ] as Subject
+        const keyword =
+          keywords[subject][
+            Math.floor(Math.random() * keywords[subject].length)
+          ]
+
+        room.phase = 'playing'
+        room.liar = {
+          sessionId: liar.sessionId,
+          name: liar.name,
+        }
+        room.subject = subject
+        room.keyword = keyword
+      } else if (room.phase === 'playing') {
+        room.phase = 'ended'
+      } else if (room.phase === 'ended') {
+        room.phase = 'waiting'
+        room.liar = null
+        room.subject = null
+        room.keyword = null
+      }
 
       await setRoom(room)
 
-      io.to(`liarGame:room:${roomId}`).emit('startGame')
+      io.to(`liarGame:room:${roomId}`).emit('phase', room.phase)
+
+      cleanInactiveRooms()
     })
 
-    socket.on('askIfImLiar', async () => {
+    socket.on('askIfImLiar', async (sessionId) => {
       const roomId = await redis.get(`liarGame:socketId${socket.id}:roomId`)
 
       if (!roomId) {
@@ -104,17 +143,38 @@ const createSocketListener =
 
       const room = await getRoom(roomId)
 
-      if (!room || !room.isPlaying) {
+      if (!room || room.phase !== 'playing' || !room.liar) {
         return
       }
 
       const { subject, keyword } = room
 
       socket.emit('answerIfImLiar', {
-        isLiar: room.liar === socket.id,
+        isLiar: room.liar.sessionId === sessionId,
         subject,
         keyword,
       })
+    })
+
+    socket.on('revealLiar', async () => {
+      const roomId = await redis.get(`liarGame:socketId${socket.id}:roomId`)
+
+      if (!roomId) {
+        return
+      }
+
+      const room = await getRoom(roomId)
+
+      if (!room || !room.liar || !room.subject || !room.keyword) {
+        return
+      }
+
+      io.to(`liarGame:room:${roomId}`).emit(
+        'revealLiar',
+        room.subject,
+        room.keyword,
+        room.liar.name
+      )
     })
   }
 

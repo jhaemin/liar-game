@@ -68,6 +68,7 @@ const createSocketListener =
         sessionId,
         name: trimmedName,
       })
+      room.lastUpdatedAt = Date.now()
 
       await setRoom(room)
 

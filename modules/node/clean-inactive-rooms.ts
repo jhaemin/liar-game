@@ -1,7 +1,7 @@
 import redis, { deleteRoom, getRoom } from './redis'
 
-// const MAX_INACTIVE_TIME = 1_800_000
-const MAX_INACTIVE_TIME = 3000
+const MAX_INACTIVE_TIME = 1_800_000
+// const MAX_INACTIVE_TIME = 3000
 
 const cleanInactiveRooms = async () => {
   const roomKeys = await redis.keys('liarGame:room:*')
@@ -16,7 +16,7 @@ const cleanInactiveRooms = async () => {
       }
 
       if (
-        Date.now() - room.lastUpdatedAt > 1_800_000 ||
+        Date.now() - room.lastUpdatedAt > MAX_INACTIVE_TIME &&
         room.players.length === 0
       ) {
         await Promise.all(

@@ -27,7 +27,7 @@ const App = ({ Component, pageProps }: AppProps) => {
         <link rel="icon" href="/favicon.ico" />
         <meta
           property="og:image"
-          content="https://www.liar-game.com/og/open_graph.png"
+          content="https://liar-game.com/og/open_graph.png"
         />
         <link
           rel="apple-touch-icon"

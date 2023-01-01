@@ -37,7 +37,7 @@ class Dialog {
     ) as HTMLElement
   }
 
-  alert(msg: string) {
+  alert(msg: string): Promise<true> {
     this.index = Dialog.alertsOrConfirms.push(0) - 1
 
     this.setMsg(msg)
@@ -51,7 +51,7 @@ class Dialog {
     })
   }
 
-  confirm(msg: string) {
+  confirm(msg: string): Promise<boolean> {
     this.index = Dialog.alertsOrConfirms.push(0) - 1
 
     this.setMsg(msg)

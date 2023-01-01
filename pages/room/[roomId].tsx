@@ -47,9 +47,7 @@ const Room = ({ isRoomAvailable }: RoomProps) => {
 
     const init = async () => {
       try {
-        await axios.post('/api/init-socket', {
-          roomId,
-        })
+        await axios.post('/api/init-socket')
       } catch (err) {
         dialog().alert(
           '방에 입장할 수 없습니다. 만료된 방이거나 인원이 꽉 찼습니다.'

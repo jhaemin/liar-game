@@ -6,7 +6,7 @@
     "dev": "npm-run-all --parallel next:dev typecheck:watch",
     "next:dev": "next dev",
     "build": "next build",
-    "start": "next start",
+    "start": "next start --port 7728",
     "lint": "next lint",
     "typecheck:watch": "tsc --noEmit --watch"
   },

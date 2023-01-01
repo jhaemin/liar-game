@@ -9,12 +9,8 @@ import { Server as SocketServer } from 'socket.io'
 
 const createSocketListener =
   (io: GameSocketServer) => async (socket: GameSocket) => {
-    console.log(`[SOCKET] connected`)
-
     socket.on('disconnect', async () => {
       const { roomId } = socket.data
-
-      console.log(`[SOCKET] Disconnected: ${socket.id}, roomId: ${roomId}`)
 
       if (!roomId) {
         return
@@ -45,7 +41,6 @@ const createSocketListener =
     })
 
     socket.on('joinRoom', async (sessionId, roomId, name) => {
-      console.log(`[SOCKET] joinRoom ${roomId} ${name}`)
       const room = await getRoom(roomId)
 
       if (!room) {

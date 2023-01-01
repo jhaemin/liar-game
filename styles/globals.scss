@@ -16,6 +16,9 @@ body {
   text-rendering: optimizeLegibility;
   -moz-osx-font-smoothing: grayscale;
   -o-font-smoothing: antialiased;
+
+  width: 100%;
+  overflow-x: hidden;
 }
 
 html {

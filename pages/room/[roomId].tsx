@@ -252,7 +252,17 @@ const Room = ({ isRoomAvailable }: RoomProps) => {
               </button>
             </Link>
             <button
-              onClick={() => {
+              onClick={async () => {
+                if (phase === 'waiting') {
+                  const yes = await dialog().confirm(
+                    `모든 플레이어가 입장했는지 확인해주세요. ${players.length}명의 플레이어로 게임을 시작하시겠습니까?`
+                  )
+
+                  if (!yes) {
+                    return
+                  }
+                }
+
                 socket?.emit('nextPhase')
               }}
             >

@@ -26,6 +26,7 @@ const Room = ({ isRoomAvailable }: RoomProps) => {
   const [players, setPlayers] = useState<Player[]>([])
   const [displayText, setDisplayText] = useState('')
   const [phase, setPhase] = useState<RedisRoom['phase']>('waiting')
+  const [isEntering, setIsEntering] = useState(false)
 
   const router = useRouter()
   const routerRoomId = router.query.roomId as string
@@ -191,6 +192,12 @@ const Room = ({ isRoomAvailable }: RoomProps) => {
                 </Link>
                 <button
                   onClick={async () => {
+                    if (isEntering) {
+                      return
+                    }
+
+                    setIsEntering(true)
+
                     if (routerRoomId === 'create') {
                       const trimmedName = myName.trim()
 
@@ -208,8 +215,10 @@ const Room = ({ isRoomAvailable }: RoomProps) => {
                     } else {
                       await joinRoom(routerRoomId)
                     }
+
+                    setIsEntering(false)
                   }}
-                  disabled={!myName.trim()}
+                  disabled={!myName.trim() || isEntering}
                 >
                   입장
                 </button>

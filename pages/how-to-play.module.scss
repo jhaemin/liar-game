@@ -18,4 +18,9 @@
   p:not(:last-child) {
     margin-bottom: 0.5em;
   }
+
+  b {
+    font-weight: 600;
+    text-decoration: underline;
+  }
 }

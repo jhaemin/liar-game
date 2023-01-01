@@ -120,7 +120,6 @@ const Room = ({ isRoomAvailable }: RoomProps) => {
     })
 
     initialSocket.on('revealLiar', (subject, keyword, name) => {
-      console.log('reveal liar')
       setDisplayText(
         `라이어는 ${name}입니다. 주제는 "${subject}"이며 제시어는 "${keyword}"입니다.`
       )

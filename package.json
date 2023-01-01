@@ -8,7 +8,9 @@
     "build": "next build",
     "start": "next start --port 7728",
     "lint": "next lint",
-    "typecheck:watch": "tsc --noEmit --watch"
+    "typecheck:watch": "tsc --noEmit --watch",
+    "pm2:run": "if pm2 show liar-game ; then pm2 stop liar-game && pm2 delete liar-game && npm run pm2:run ; else pm2 start npm --name 'liar-game' -- run start ; fi",
+    "dist": "git reset --hard && git pull && rm -rf node_modules && pnpm install --frozen-lockfile && npm run lint && npm run build && npm run pm2:run"
   },
   "dependencies": {
     "@types/body-scroll-lock": "^3.1.0",

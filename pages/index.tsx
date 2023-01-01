@@ -15,9 +15,9 @@ const Home = () => {
         <Link href="/room/create">
           <button>방 만들기</button>
         </Link>
-        <Link href="/room/join">
+        {/* <Link href="/room/join">
           <button className="minimal">플레이 방법</button>
-        </Link>
+        </Link> */}
       </div>
 
       <div className={styles.bottom}>

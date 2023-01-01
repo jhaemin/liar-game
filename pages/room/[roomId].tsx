@@ -33,27 +33,6 @@ const Room = ({ isRoomAvailable }: RoomProps) => {
 
   const isRoomReady = socket !== undefined && routerRoomId !== 'create'
 
-  useEffect(() => {
-    if (!routerRoomId || routerRoomId === 'create' || !isRoomAvailable) {
-      return
-    }
-
-    const init = async () => {
-      try {
-        await axios.post('/api/init-socket', {
-          roomId: routerRoomId,
-        })
-      } catch (err) {
-        dialog().alert(
-          '방에 입장할 수 없습니다. 만료된 방이거나 인원이 꽉 찼습니다.'
-        )
-        router.replace('/')
-      }
-    }
-
-    init()
-  }, [routerRoomId, router, isRoomAvailable])
-
   const createRoom = async () => {
     const res = await axios.post('/api/create-room')
     const { roomId } = res.data as CreateRoomResponseData
@@ -65,6 +44,21 @@ const Room = ({ isRoomAvailable }: RoomProps) => {
     if (socket || !roomId) {
       return
     }
+
+    const init = async () => {
+      try {
+        await axios.post('/api/init-socket', {
+          roomId,
+        })
+      } catch (err) {
+        dialog().alert(
+          '방에 입장할 수 없습니다. 만료된 방이거나 인원이 꽉 찼습니다.'
+        )
+        router.replace('/')
+      }
+    }
+
+    await init()
 
     const initialSocket: GameSocketClient = io({
       forceNew: true,
@@ -79,7 +73,6 @@ const Room = ({ isRoomAvailable }: RoomProps) => {
     initialSocket.on('connect', () => {
       const sessionId = getSessionId()
 
-      console.info('Socket connected')
       initialSocket.emit('joinRoom', sessionId, roomId, myName)
     })
 
@@ -107,7 +100,6 @@ const Room = ({ isRoomAvailable }: RoomProps) => {
     })
 
     initialSocket.on('phase', (nextPhase) => {
-      console.info(`Phase changed to ${nextPhase}`)
       setPhase(nextPhase)
 
       if (nextPhase === 'playing') {

@@ -16,8 +16,9 @@ const cleanInactiveRooms = async () => {
       }
 
       if (
-        Date.now() - room.lastUpdatedAt > MAX_INACTIVE_TIME &&
-        room.players.length === 0
+        (Date.now() - room.lastUpdatedAt > MAX_INACTIVE_TIME &&
+          room.players.length === 0) ||
+        Date.now() - room.lastUpdatedAt > MAX_INACTIVE_TIME * 2
       ) {
         await Promise.all(
           room.players.map((player) =>

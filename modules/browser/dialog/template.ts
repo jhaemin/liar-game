@@ -1,5 +1,5 @@
 export const template = `
-<div class="eodiro-dialog" tabindex="0">
+<div class="dialog" tabindex="0">
   <div class="wall"></div>
   <div class="content">
     <div class="message"></div>

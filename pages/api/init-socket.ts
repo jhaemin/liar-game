@@ -1,3 +1,4 @@
+// Local imports
 import keywords, { Subject } from '@/data/keywords'
 import cleanInactiveRooms from '@/modules/node/clean-inactive-rooms'
 import redis, { deleteRoom, getRoom, setRoom } from '@/modules/node/redis'
@@ -40,7 +41,7 @@ const createSocketListener =
       io.to(`liarGame:room:${roomId}`).emit('phase', room.phase)
     })
 
-    socket.on('joinRoom', async (sessionId, roomId, name) => {
+    socket.on('joinRoom', async (sessionId, roomId, name, language = 'ko') => {
       const room = await getRoom(roomId)
 
       if (!room) {
@@ -51,12 +52,13 @@ const createSocketListener =
       const trimmedName = name.trim()
 
       if (trimmedName.length === 0) {
-        socket.emit('error', '이름을 입력해주세요.')
+        socket.emit('error', language === 'en' ? 'Please enter your name.' : '이름을 입력해주세요.')
         return
       }
 
       socket.join(`liarGame:room:${roomId}`)
       socket.data.roomId = roomId
+      socket.data.language = language
 
       room.players.push({
         socketId: socket.id,
@@ -64,6 +66,11 @@ const createSocketListener =
         name: trimmedName,
       })
       room.lastUpdatedAt = Date.now()
+
+      // Store language preference for the room (use first player's language)
+      if (!room.language) {
+        room.language = language
+      }
 
       await setRoom(room)
 
@@ -96,13 +103,20 @@ const createSocketListener =
       if (room.phase === 'waiting') {
         const liar =
           room.players[Math.floor(Math.random() * room.players.length)]
-        const subjects = Object.keys(keywords)
+
+        // Use language-appropriate keywords
+        const language = room.language || 'ko'
+        const subjects = language === 'en'
+          ? ['sports', 'food', 'animals'] as Subject[]
+          : ['스포츠', '음식', '동물'] as Subject[]
+
         const subject = subjects[
           Math.floor(Math.random() * subjects.length)
-        ] as Subject
+        ]
+
         const keyword =
           keywords[subject][
-            Math.floor(Math.random() * keywords[subject].length)
+          Math.floor(Math.random() * keywords[subject].length)
           ]
 
         room.phase = 'playing'
@@ -129,7 +143,7 @@ const createSocketListener =
     })
 
     socket.on('askIfImLiar', async (sessionId) => {
-      const { roomId } = socket.data
+      const { roomId, language = 'ko' } = socket.data
 
       if (!roomId) {
         return
@@ -143,9 +157,27 @@ const createSocketListener =
 
       const { subject, keyword } = room
 
+      // Translate subject if needed
+      let displaySubject = subject
+      if (subject && language === 'en' && ['스포츠', '음식', '동물'].includes(subject)) {
+        const subjectMap: Record<string, string> = {
+          '스포츠': 'sports',
+          '음식': 'food',
+          '동물': 'animals'
+        }
+        displaySubject = subjectMap[subject]
+      } else if (subject && language === 'ko' && ['sports', 'food', 'animals'].includes(subject)) {
+        const subjectMap: Record<string, string> = {
+          'sports': '스포츠',
+          'food': '음식',
+          'animals': '동물'
+        }
+        displaySubject = subjectMap[subject]
+      }
+
       socket.emit('answerIfImLiar', {
         isLiar: room.liar.sessionId === sessionId,
-        subject,
+        subject: displaySubject,
         keyword,
       })
     })
@@ -163,12 +195,35 @@ const createSocketListener =
         return
       }
 
-      io.to(`liarGame:room:${roomId}`).emit(
-        'revealLiar',
-        room.subject,
-        room.keyword,
-        room.liar.name
-      )
+      // Get each socket's language and emit with translated subject
+      const sockets = await io.in(`liarGame:room:${roomId}`).fetchSockets()
+      for (const socket of sockets) {
+        const language = (socket.data as any).language || 'ko'
+        let displaySubject = room.subject
+
+        if (room.subject && language === 'en' && ['스포츠', '음식', '동물'].includes(room.subject)) {
+          const subjectMap: Record<string, string> = {
+            '스포츠': 'sports',
+            '음식': 'food',
+            '동물': 'animals'
+          }
+          displaySubject = subjectMap[room.subject]
+        } else if (room.subject && language === 'ko' && ['sports', 'food', 'animals'].includes(room.subject)) {
+          const subjectMap: Record<string, string> = {
+            'sports': '스포츠',
+            'food': '음식',
+            'animals': '동물'
+          }
+          displaySubject = subjectMap[room.subject]
+        }
+
+        socket.emit(
+          'revealLiar',
+          displaySubject,
+          room.keyword,
+          room.liar.name
+        )
+      }
     })
   }
 

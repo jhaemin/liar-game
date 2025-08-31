@@ -1,12 +1,17 @@
+// Third-party imports
 import { clearAllBodyScrollLocks, disableBodyScroll } from 'body-scroll-lock'
 import Mustache from 'mustache'
+
+// Local imports
+import { Language } from '@/contexts/LanguageContext'
+import translations from '@/data/translations'
 import { template as dialogTemplate } from './template'
 
-const messages = {
-  confirmLabel: '확인',
-  cancelLabel: '취소',
-  closeLabel: '닫기',
-}
+const getMessages = (language: Language) => ({
+  confirmLabel: translations[language].common.confirm,
+  cancelLabel: translations[language].common.cancel,
+  closeLabel: translations[language].common.close,
+})
 
 class Dialog {
   static alertsOrConfirms: number[] = []
@@ -18,6 +23,10 @@ class Dialog {
   closeBtn: HTMLElement
 
   constructor() {
+    // Get the current language from localStorage
+    const language = (localStorage.getItem('language') as Language) || 'ko'
+    const messages = getMessages(language)
+
     // create a DOM
     const wrapper = document.createElement('div')
     wrapper.innerHTML = Mustache.render(dialogTemplate, messages)
@@ -43,7 +52,7 @@ class Dialog {
     this.setMsg(msg)
     this.open('alert')
 
-    return new Promise((resolve) => {
+    return new Promise((resolve, reject) => {
       this.closeBtn.onclick = () => {
         this.close()
         resolve(true)
@@ -57,15 +66,15 @@ class Dialog {
     this.setMsg(msg)
     this.open('confirm')
 
-    return new Promise((resolve) => {
-      this.confirmBtn.onclick = () => {
-        this.close()
-        resolve(true)
-      }
-
+    return new Promise((resolve, reject) => {
       this.cancelBtn.onclick = () => {
         this.close()
         resolve(false)
+      }
+
+      this.confirmBtn.onclick = () => {
+        this.close()
+        resolve(true)
       }
     })
   }
@@ -85,50 +94,36 @@ class Dialog {
       disableBodyScroll(document.body)
     }
 
-    if (document.activeElement instanceof HTMLElement) {
-      document.activeElement.blur()
-    }
+    this.dialogContainerElm.classList.add(mode)
+    this.dialogContainerElm.classList.add('active')
+    this.dialogContainerElm.focus()
 
-    setTimeout(() => {
-      this.dialogContainerElm.ontransitionstart = () => {
-        if (mode === 'alert') {
-          ;(this.closeBtn.querySelector('button') as HTMLButtonElement).focus()
-        } else if (mode === 'confirm') {
-          ;(
-            this.confirmBtn.querySelector('button') as HTMLButtonElement
-          ).focus()
-        }
-      }
-
-      this.dialogContainerElm.classList.add('active')
-      this.dialogContainerElm.classList.add(mode)
-    }, 0)
-
-    // If vagabond mode, auto-close it after some time
     if (mode === 'vagabond') {
       setTimeout(() => {
         this.close()
-      }, 1500)
+      }, 3000)
     }
   }
 
   close() {
+    clearAllBodyScrollLocks()
     Dialog.alertsOrConfirms.splice(this.index, 1)
-
-    if (Dialog.alertsOrConfirms.length === 0) {
-      // Enable body scroll
-      clearAllBodyScrollLocks()
-    }
-
-    // Remove active class
+    this.dialogContainerElm.classList.remove('alert')
+    this.dialogContainerElm.classList.remove('confirm')
+    this.dialogContainerElm.classList.remove('vagabond')
     this.dialogContainerElm.classList.remove('active')
+  }
 
-    setTimeout(() => {
-      this.dialogContainerElm.remove()
-    }, 300)
+  destroy() {
+    this.dialogContainerElm.remove()
   }
 }
 
-const dialog = () => new Dialog()
+const dialog = (): Dialog => {
+  const dialog = new Dialog()
+  return dialog
+}
+
+// Note: Dialog styles are imported in _app.tsx to comply with Next.js global CSS rules
 
 export default dialog

@@ -1,12 +1,22 @@
-import { getSessionId } from '@/modules/browser/storage'
-import '@/styles/globals.scss'
+// Standard library imports
+import { useEffect } from 'react'
+
+// Third-party imports
 import { nanoid } from 'nanoid'
 import type { AppProps } from 'next/app'
 import Head from 'next/head'
-import { useEffect } from 'react'
+
+// Local imports
+import LanguageSelector from '@/components/LanguageSelector'
+import { LanguageProvider, useLanguage } from '@/contexts/LanguageContext'
+import '@/modules/browser/dialog/style.scss'
+import { getSessionId } from '@/modules/browser/storage'
+import '@/styles/globals.scss'
 import styles from './_app.module.scss'
 
-const App = ({ Component, pageProps }: AppProps) => {
+const AppContent = ({ Component, pageProps }: AppProps) => {
+  const { t } = useLanguage()
+
   useEffect(() => {
     if (!getSessionId({ initial: true })) {
       sessionStorage.setItem('sessionId', nanoid(10))
@@ -16,12 +26,12 @@ const App = ({ Component, pageProps }: AppProps) => {
   return (
     <>
       <Head>
-        <title>라이어 게임</title>
-        <meta property="og:title" content="라이어 게임" />
-        <meta name="description" content="우리 중 누군가 거짓말을 하고 있다." />
+        <title>{t('common.title')}</title>
+        <meta property="og:title" content={t('common.title')} />
+        <meta name="description" content="Among us, someone is lying." />
         <meta
           property="og:description"
-          content="우리 중 누군가 거짓말을 하고 있다."
+          content="Among us, someone is lying."
         />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
@@ -104,9 +114,18 @@ const App = ({ Component, pageProps }: AppProps) => {
         <meta name="theme-color" content="#ffffff" />
       </Head>
       <div id="app" className={styles.wrapper}>
+        <LanguageSelector />
         <Component {...pageProps} />
       </div>
     </>
+  )
+}
+
+const App = (props: AppProps) => {
+  return (
+    <LanguageProvider>
+      <AppContent {...props} />
+    </LanguageProvider>
   )
 }
 

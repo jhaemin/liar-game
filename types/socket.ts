@@ -1,4 +1,4 @@
-import type { Server as SocketServer, Socket } from 'socket.io'
+import type { Socket, Server as SocketServer } from 'socket.io'
 import type { Socket as SocketClient } from 'socket.io-client'
 import { Player } from './game'
 import { RedisRoom } from './redis'
@@ -23,7 +23,7 @@ export type ServerToClientEvents = {
  * Client -> Server
  */
 export type ClientToServerEvents = {
-  joinRoom: (sessionId: string, roomId: string, name: string) => void
+  joinRoom: (sessionId: string, roomId: string, name: string, language?: 'ko' | 'en') => void
   nextPhase: () => void
   askIfImLiar: (sessionId: string) => void
   revealLiar: () => void
@@ -41,6 +41,7 @@ export type InterServerEvents = {
  */
 export type SocketData = {
   roomId: string
+  language?: 'ko' | 'en'
 }
 
 export type GameSocketServer = SocketServer<

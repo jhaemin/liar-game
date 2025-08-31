@@ -1,0 +1,41 @@
+.languageSelector {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem;
+    background-color: rgba(255, 255, 255, 0.1);
+    border-radius: 0.5rem;
+    position: fixed;
+    top: 1rem;
+    right: 1rem;
+    z-index: 1000;
+    backdrop-filter: blur(10px);
+
+    .langButton {
+        padding: 0.5rem 1rem;
+        background: none;
+        border: none;
+        color: #666;
+        cursor: pointer;
+        font-size: 0.9rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        border-radius: 0.25rem;
+
+        &:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+            color: #333;
+        }
+
+        &.active {
+            color: #000;
+            background-color: rgba(255, 255, 255, 0.9);
+            font-weight: 600;
+        }
+    }
+
+    .separator {
+        color: #999;
+        font-size: 0.8rem;
+    }
+}

@@ -1,4 +1,4 @@
-export type Subject = '스포츠' | '음식' | '동물'
+export type Subject = '스포츠' | '음식' | '동물' | 'sports' | 'food' | 'animals'
 
 export type Keyword = {
   subject: Subject
@@ -89,72 +89,103 @@ const keywords: Record<Subject, string[]> = {
     '탕수육',
     '볶음밥',
   ],
+  // English keywords
+  sports: [
+    'soccer',
+    'baseball',
+    'basketball',
+    'volleyball',
+    'ping pong',
+    'tennis',
+    'bowling',
+    'golf',
+    'skiing',
+    'snowboarding',
+    'badminton',
+    'hiking',
+    'swimming',
+    'boxing',
+    'wrestling',
+    'hockey',
+    'rugby',
+    'cycling',
+    'running',
+    'surfing',
+  ],
+  animals: [
+    'cat',
+    'dog',
+    'rabbit',
+    'hamster',
+    'turtle',
+    'snake',
+    'hedgehog',
+    'penguin',
+    'elephant',
+    'lion',
+    'tiger',
+    'fox',
+    'wolf',
+    'rhinoceros',
+    'deer',
+    'giraffe',
+    'koala',
+    'leopard',
+    'monkey',
+    'hippopotamus',
+    'zebra',
+    'horse',
+    'pig',
+    'cow',
+    'sheep',
+    'chicken',
+    'duck',
+    'parrot',
+    'sparrow',
+    'crow',
+    'eagle',
+    'hawk',
+    'owl',
+    'crane',
+    'seal',
+    'whale',
+    'shark',
+    'dolphin',
+    'bear',
+    'panda',
+  ],
+  food: [
+    'pizza',
+    'chicken',
+    'hamburger',
+    'pasta',
+    'sushi',
+    'steak',
+    'salad',
+    'sandwich',
+    'tacos',
+    'burrito',
+    'ice cream',
+    'chocolate',
+    'cookie',
+    'cake',
+    'bread',
+    'cheese',
+    'rice',
+    'noodles',
+    'soup',
+    'fish',
+    'shrimp',
+    'lobster',
+    'crab',
+    'bacon',
+    'eggs',
+    'pancakes',
+    'waffles',
+    'french fries',
+    'hot dog',
+    'popcorn',
+  ],
 }
-
-// const keywords: Keyword[] = [
-//   {
-//     subject: '스포츠',
-//     keyword: '축구',
-//   },
-//   {
-//     subject: '스포츠',
-//     keyword: '야구',
-//   },
-//   {
-//     subject: '스포츠',
-//     keyword: '농구',
-//   },
-//   {
-//     subject: '스포츠',
-//     keyword: '배구',
-//   },
-//   {
-//     subject: '스포츠',
-//     keyword: '탁구',
-//   },
-//   {
-//     subject: '스포츠',
-//     keyword: '테니스',
-//   },
-//   {
-//     subject: '스포츠',
-//     keyword: '볼링',
-//   },
-//   {
-//     subject: '스포츠',
-//     keyword: '골프',
-//   },
-//   {
-//     subject: '스포츠',
-//     keyword: '스쿼시',
-//   },
-//   {
-//     subject: '스포츠',
-//     keyword: '스키',
-//   },
-//   {
-//     subject: '스포츠',
-//     keyword: '스노우보드',
-//   },
-//   {
-//     subject: '스포츠',
-//     keyword: '스케이트보드',
-//   },
-//   {
-//     subject: '스포츠',
-//     keyword: '배드민턴',
-//   },
-//   {
-//     subject: '스포츠',
-//     keyword: '수영',
-//   },
-//   {
-//     subject: '스포츠',
-//     keyword: '등산',
-//   },
-//   {
-
-//   }
-// ]
 
 export default keywords

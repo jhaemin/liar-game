@@ -1,22 +1,28 @@
+// Third-party imports
 import { LogoGithub, QuestionCircle } from 'framework7-icons-plus/react'
 import Link from 'next/link'
+
+// Local imports
+import { useLanguage } from '@/contexts/LanguageContext'
 import styles from './home.module.scss'
 
 const Home = () => {
+  const { t } = useLanguage()
+
   return (
     <div className={styles.home}>
       <div className={styles.top} />
 
       <div className={styles.middle}>
         <div className={styles.hero}>
-          <h2 className={styles.titleEng}>Liar Game</h2>
-          <h1 className={styles.title}>라이어 게임</h1>
+          <h2 className={styles.titleEng}>{t('common.titleEng')}</h2>
+          <h1 className={styles.title}>{t('common.title')}</h1>
         </div>
         <Link href="/room/create">
-          <button>방 만들기</button>
+          <button>{t('home.createRoom')}</button>
         </Link>
         <Link href="/how-to-play">
-          <button className="minimal">플레이 방법</button>
+          <button className="minimal">{t('home.howToPlay')}</button>
         </Link>
       </div>
 
@@ -27,7 +33,7 @@ const Home = () => {
           rel="noreferrer"
         >
           <span className={styles.source}>
-            <LogoGithub className={styles.icon} /> GitHub
+            <LogoGithub className={styles.icon} /> {t('home.github')}
           </span>
         </a>
       </div>

@@ -1,18 +1,24 @@
-import dialog from '@/modules/browser/dialog'
-import { getSessionId } from '@/modules/browser/storage'
-import { getRoom } from '@/modules/node/redis'
-import { Player } from '@/types/game'
-import { RedisRoom } from '@/types/redis'
-import { GameSocketClient } from '@/types/socket'
+// Standard library imports
+import { useEffect, useState } from 'react'
+
+// Third-party imports
 import axios from 'axios'
 import copy from 'copy-to-clipboard'
 import { House } from 'framework7-icons-plus/react'
 import { GetServerSideProps } from 'next'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
-import { useEffect, useState } from 'react'
 import { Flipped, Flipper } from 'react-flip-toolkit'
 import { io } from 'socket.io-client'
+
+// Local imports
+import { useLanguage } from '@/contexts/LanguageContext'
+import dialog from '@/modules/browser/dialog'
+import { getSessionId } from '@/modules/browser/storage'
+import { getRoom } from '@/modules/node/redis'
+import { Player } from '@/types/game'
+import { RedisRoom } from '@/types/redis'
+import { GameSocketClient } from '@/types/socket'
 import { CreateRoomResponseData } from '../api/create-room'
 import styles from './room.module.scss'
 
@@ -27,6 +33,8 @@ const Room = ({ isRoomAvailable }: RoomProps) => {
   const [displayText, setDisplayText] = useState('')
   const [phase, setPhase] = useState<RedisRoom['phase']>('waiting')
   const [isEntering, setIsEntering] = useState(false)
+
+  const { t, language } = useLanguage()
 
   const router = useRouter()
   const routerRoomId = router.query.roomId as string
@@ -49,9 +57,7 @@ const Room = ({ isRoomAvailable }: RoomProps) => {
       try {
         await axios.post('/api/init-socket')
       } catch (err) {
-        dialog().alert(
-          '방에 입장할 수 없습니다. 만료된 방이거나 인원이 꽉 찼습니다.'
-        )
+        dialog().alert(t('errors.joinFailed'))
         router.replace('/')
       }
     }
@@ -71,13 +77,11 @@ const Room = ({ isRoomAvailable }: RoomProps) => {
     initialSocket.on('connect', () => {
       const sessionId = getSessionId()
 
-      initialSocket.emit('joinRoom', sessionId, roomId, myName)
+      initialSocket.emit('joinRoom', sessionId, roomId, myName, language)
     })
 
     initialSocket.on('joinRoomFailed', () => {
-      dialog().alert(
-        '방에 입장할 수 없습니다. 만료된 방이거나 인원이 꽉 찼습니다.'
-      )
+      dialog().alert(t('errors.joinFailed'))
       router.replace('/')
     })
 
@@ -88,8 +92,8 @@ const Room = ({ isRoomAvailable }: RoomProps) => {
     initialSocket.on('answerIfImLiar', ({ isLiar, subject, keyword }) => {
       setDisplayText(
         isLiar
-          ? `주제는 "${subject}"입니다. 당신은 라이어입니다.`
-          : `주제는 "${subject}"이며 제시어는 "${keyword}"입니다. 라이어를 찾아주세요.`
+          ? t('room.youAreLiar').replace('{subject}', subject || '')
+          : t('room.findLiar').replace('{subject}', subject || '').replace('{keyword}', keyword || '')
       )
     })
 
@@ -111,7 +115,10 @@ const Room = ({ isRoomAvailable }: RoomProps) => {
 
     initialSocket.on('revealLiar', (subject, keyword, name) => {
       setDisplayText(
-        `라이어는 ${name}입니다. 주제는 "${subject}"이며 제시어는 "${keyword}"입니다.`
+        t('room.liarRevealed')
+          .replace('{name}', name)
+          .replace('{subject}', subject)
+          .replace('{keyword}', keyword)
       )
     })
   }
@@ -129,7 +136,7 @@ const Room = ({ isRoomAvailable }: RoomProps) => {
       <div className={styles.top}>
         {isRoomReady && (
           <div className={styles.playersContainer}>
-            <h2 className={styles.title}>플레이어</h2>
+            <h2 className={styles.title}>{t('room.players')}</h2>
             <Flipper
               flipKey={players.map(({ id }) => id)}
               className={styles.players}
@@ -147,15 +154,15 @@ const Room = ({ isRoomAvailable }: RoomProps) => {
       <div className={styles.middle}>
         {!isRoomAvailable ? (
           <>
-            <p>존재하지 않거나 이미 게임이 진행 중인 방입니다.</p>
+            <p>{t('room.roomNotAvailable')}</p>
             <Link href="/">
-              <button>홈으로 돌아가기</button>
+              <button>{t('room.returnHome')}</button>
             </Link>
           </>
         ) : !isRoomReady ? (
           <>
             <div className={styles.nameRegistration}>
-              <h1 className={styles.title}>라이어 게임 방 입장</h1>
+              <h1 className={styles.title}>{t('room.enterRoom')}</h1>
               <div className={styles.inputWrapper}>
                 <input
                   className={styles.nameInput}
@@ -171,13 +178,13 @@ const Room = ({ isRoomAvailable }: RoomProps) => {
                 />
                 {!myName && (
                   <span className={styles.placeholder}>
-                    이름을 입력해주세요.
+                    {t('room.enterName')}
                   </span>
                 )}
               </div>
               <div className={styles.actions}>
                 <Link href="/">
-                  <button>취소</button>
+                  <button>{t('common.cancel')}</button>
                 </Link>
                 <button
                   onClick={async () => {
@@ -191,7 +198,7 @@ const Room = ({ isRoomAvailable }: RoomProps) => {
                       const trimmedName = myName.trim()
 
                       if (!trimmedName) {
-                        dialog().vagabond('이름을 입력해주세요.')
+                        dialog().vagabond(t('errors.enterName'))
                         return
                       }
 
@@ -209,7 +216,7 @@ const Room = ({ isRoomAvailable }: RoomProps) => {
                   }}
                   disabled={!myName.trim() || isEntering}
                 >
-                  입장
+                  {t('room.enter')}
                 </button>
               </div>
             </div>
@@ -220,7 +227,7 @@ const Room = ({ isRoomAvailable }: RoomProps) => {
               displayText
             ) : (
               <>
-                아래 링크를 공유하세요!
+                {t('room.shareLink')}
                 <br />
                 <span className={styles.roomLink}>
                   {location.host + location.pathname}
@@ -229,13 +236,13 @@ const Room = ({ isRoomAvailable }: RoomProps) => {
                   className="minimal"
                   onClick={() => {
                     if (copy(location.host + location.pathname)) {
-                      dialog().vagabond('클립보드에 복사되었습니다.')
+                      dialog().vagabond(t('common.copied'))
                     } else {
-                      dialog().vagabond('복사에 실패했습니다.')
+                      dialog().vagabond(t('common.copyFailed'))
                     }
                   }}
                 >
-                  링크 복사
+                  {t('room.copyLink')}
                 </button>
               </>
             )}
@@ -248,14 +255,14 @@ const Room = ({ isRoomAvailable }: RoomProps) => {
           <div className={styles.controller}>
             <Link href="/">
               <button>
-                <House /> 홈으로
+                <House /> {t('common.home')}
               </button>
             </Link>
             <button
               onClick={async () => {
                 if (phase === 'waiting') {
                   const yes = await dialog().confirm(
-                    `모든 플레이어가 입장했는지 확인해주세요. ${players.length}명의 플레이어로 게임을 시작하시겠습니까?`
+                    t('room.confirmStart').replace('{count}', String(players.length))
                   )
 
                   if (!yes) {
@@ -267,10 +274,10 @@ const Room = ({ isRoomAvailable }: RoomProps) => {
               }}
             >
               {phase === 'waiting'
-                ? '게임 시작'
+                ? t('room.startGame')
                 : phase === 'playing'
-                ? '게임 종료'
-                : '다시 시작'}
+                  ? t('room.endGame')
+                  : t('room.restart')}
             </button>
           </div>
         )}

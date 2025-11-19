@@ -1,4 +1,4 @@
-import { ChevronLeft, House } from 'framework7-icons-plus/react'
+import { ChevronLeft } from 'framework7-icons-plus/react'
 import Link from 'next/link'
 import styles from './how-to-play.module.scss'
 
@@ -6,7 +6,7 @@ const HowToPlay = () => {
   return (
     <div className={styles.page}>
       <Link href="/">
-        <button className="minimal">
+        <button type="button" className="minimal">
           <ChevronLeft /> 홈으로
         </button>
       </Link>

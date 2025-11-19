@@ -1,4 +1,4 @@
-import { LogoGithub, QuestionCircle } from 'framework7-icons-plus/react'
+import { LogoGithub } from 'framework7-icons-plus/react'
 import Link from 'next/link'
 import styles from './home.module.scss'
 
@@ -13,10 +13,12 @@ const Home = () => {
           <h1 className={styles.title}>라이어 게임</h1>
         </div>
         <Link href="/room/create">
-          <button>방 만들기</button>
+          <button type="button">방 만들기</button>
         </Link>
         <Link href="/how-to-play">
-          <button className="minimal">플레이 방법</button>
+          <button type="button" className="minimal">
+            플레이 방법
+          </button>
         </Link>
       </div>
 

@@ -1,9 +1,9 @@
-import { Server as HttpServer } from 'http'
-import { Socket as NetSocket } from 'net'
-import { NextApiRequest, NextApiResponse } from 'next'
-import { GameSocket, GameSocketServer } from './socket'
+import type { Server as HttpServer } from 'node:http'
+import type { Socket as NetSocket } from 'node:net'
+import type { NextApiRequest, NextApiResponse } from 'next'
+import type { GameSocket, GameSocketServer } from './socket'
 
-export type NextApiResponseExtended<T = any> = NextApiResponse<T> & {
+export type NextApiResponseExtended<T = unknown> = NextApiResponse<T> & {
   socket: NetSocket & {
     server: HttpServer & {
       io: GameSocketServer
@@ -12,7 +12,7 @@ export type NextApiResponseExtended<T = any> = NextApiResponse<T> & {
   }
 }
 
-export type NextApiHandlerExtended<T = any> = (
+export type NextApiHandlerExtended<T = unknown> = (
   req: NextApiRequest,
   res: NextApiResponseExtended<T>
 ) => unknown | Promise<unknown>

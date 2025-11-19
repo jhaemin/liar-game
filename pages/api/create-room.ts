@@ -1,7 +1,7 @@
-import redis from '@/modules/node/redis'
-import { NextApiHandlerExtended } from '@/types/next'
-import { RedisRoom } from '@/types/redis'
 import { Chance } from 'chance'
+import redis from '@/modules/node/redis'
+import type { NextApiHandlerExtended } from '@/types/next'
+import type { RedisRoom } from '@/types/redis'
 
 const chance = Chance()
 
@@ -10,7 +10,7 @@ export type CreateRoomResponseData = {
 }
 
 const handler: NextApiHandlerExtended<CreateRoomResponseData> = async (
-  req,
+  _req,
   res
 ) => {
   const roomId = `${chance.word({ length: 5 })}-${chance.word({ length: 5 })}`

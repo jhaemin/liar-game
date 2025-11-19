@@ -14,5 +14,5 @@ export const getSessionId = (options?: { initial: boolean }) => {
     throw Error('Session ID is not set')
   }
 
-  return sessionId!
+  return sessionId as string
 }

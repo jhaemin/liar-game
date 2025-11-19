@@ -1,5 +1,5 @@
-import { RedisRoom } from '@/types/redis'
 import Redis from 'ioredis'
+import type { RedisRoom } from '@/types/redis'
 import { redisRoomSchema } from '../shared/schema'
 
 const redis = new Redis({

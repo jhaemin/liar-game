@@ -1,5 +1,5 @@
-import { GameSocketClient } from '@/types/socket'
 import { atom, useAtomValue } from 'jotai'
+import type { GameSocketClient } from '@/types/socket'
 
 const socketAtom = atom<GameSocketClient | undefined>(undefined)
 

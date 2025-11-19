@@ -1,11 +1,11 @@
-import keywords, { Subject } from '@/data/keywords'
-import cleanInactiveRooms from '@/modules/node/clean-inactive-rooms'
-import redis, { deleteRoom, getRoom, setRoom } from '@/modules/node/redis'
-import { isDev } from '@/modules/shared/is'
-import { NextApiResponseExtended } from '@/types/next'
-import { GameSocket, GameSocketServer } from '@/types/socket'
-import { NextApiRequest } from 'next'
+import type { NextApiRequest } from 'next'
 import { Server as SocketServer } from 'socket.io'
+import keywords, { type Subject } from '@/data/keywords'
+import cleanInactiveRooms from '@/modules/node/clean-inactive-rooms'
+import { getRoom, setRoom } from '@/modules/node/redis'
+import { isDev } from '@/modules/shared/is'
+import type { NextApiResponseExtended } from '@/types/next'
+import type { GameSocket, GameSocketServer } from '@/types/socket'
 
 const createSocketListener =
   (io: GameSocketServer) => async (socket: GameSocket) => {
@@ -78,7 +78,7 @@ const createSocketListener =
       io.to(`liarGame:room:${roomId}`).emit('phase', room.phase)
     })
 
-    socket.on('nextPhase', async () => {
+    socket.on('nextPhase', async (mode: 'default' | 'fool' = 'default') => {
       const { roomId } = socket.data
 
       if (!roomId) {
@@ -112,6 +112,13 @@ const createSocketListener =
         }
         room.subject = subject
         room.keyword = keyword
+        room.mode = mode
+
+        if (mode === 'fool') {
+          const otherKeywords = keywords[subject].filter((k) => k !== keyword)
+          room.liarKeyword =
+            otherKeywords[Math.floor(Math.random() * otherKeywords.length)]
+        }
 
         cleanInactiveRooms()
       } else if (room.phase === 'playing') {
@@ -121,6 +128,8 @@ const createSocketListener =
         room.liar = null
         room.subject = null
         room.keyword = null
+        room.mode = undefined
+        room.liarKeyword = null
       }
 
       await setRoom(room)
@@ -141,13 +150,29 @@ const createSocketListener =
         return
       }
 
-      const { subject, keyword } = room
+      const { subject, keyword, liarKeyword, mode } = room
 
-      socket.emit('answerIfImLiar', {
-        isLiar: room.liar.sessionId === sessionId,
-        subject,
-        keyword,
-      })
+      if (mode === 'fool') {
+        if (room.liar.sessionId === sessionId) {
+          socket.emit('answerIfImLiar', {
+            isLiar: false,
+            subject,
+            keyword: liarKeyword ?? null,
+          })
+        } else {
+          socket.emit('answerIfImLiar', {
+            isLiar: false,
+            subject,
+            keyword,
+          })
+        }
+      } else {
+        socket.emit('answerIfImLiar', {
+          isLiar: room.liar.sessionId === sessionId,
+          subject,
+          keyword,
+        })
+      }
     })
 
     socket.on('revealLiar', async () => {
@@ -170,10 +195,31 @@ const createSocketListener =
         room.liar.name
       )
     })
+
+    socket.on('updateMode', async (mode) => {
+      const { roomId } = socket.data
+
+      if (!roomId) {
+        return
+      }
+
+      const room = await getRoom(roomId)
+
+      if (!room) {
+        return
+      }
+
+      room.mode = mode
+      room.lastUpdatedAt = Date.now()
+
+      await setRoom(room)
+
+      io.to(`liarGame:room:${roomId}`).emit('updateMode', mode)
+    })
   }
 
 const SocketHandler = async (
-  req: NextApiRequest,
+  _req: NextApiRequest,
   res: NextApiResponseExtended
 ) => {
   // Already initialized

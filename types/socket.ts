@@ -1,7 +1,7 @@
-import type { Server as SocketServer, Socket } from 'socket.io'
+import type { Socket, Server as SocketServer } from 'socket.io'
 import type { Socket as SocketClient } from 'socket.io-client'
-import { Player } from './game'
-import { RedisRoom } from './redis'
+import type { Player } from './game'
+import type { RedisRoom } from './redis'
 
 /**
  * Server -> Client
@@ -17,6 +17,7 @@ export type ServerToClientEvents = {
   joinRoomFailed: () => void
   error: (message: string) => void
   revealLiar: (subject: string, keyword: string, name: string) => void
+  updateMode: (mode: 'default' | 'fool') => void
 }
 
 /**
@@ -24,9 +25,11 @@ export type ServerToClientEvents = {
  */
 export type ClientToServerEvents = {
   joinRoom: (sessionId: string, roomId: string, name: string) => void
-  nextPhase: () => void
+  nextPhase: (mode?: 'default' | 'fool') => void
   askIfImLiar: (sessionId: string) => void
+
   revealLiar: () => void
+  updateMode: (mode: 'default' | 'fool') => void
 }
 
 /**

@@ -9,9 +9,10 @@
     "start": "next start --port 7728",
     "check": "biome check --write",
     "check:unsafe": "biome check --write --unsafe",
+    "lint": "biome check",
     "typecheck:watch": "tsc --noEmit --watch",
-    "pm2:run": "if pm2 show liar-game ; then pm2 stop liar-game && pm2 delete liar-game && npm run pm2:run ; else pm2 start npm --name 'liar-game' -- run start ; fi",
-    "dist": "git reset --hard && git pull && rm -rf node_modules && pnpm install --frozen-lockfile && npm run lint && npm run build && npm run pm2:run"
+    "pm2:run": "if pm2 show liar-game ; then pm2 stop liar-game && pm2 delete liar-game && bun run pm2:run ; else pm2 start bun --name 'liar-game' -- run start && pm2 save ; fi",
+    "dist": "git reset --hard && git pull && rm -rf node_modules && bun install --frozen-lockfile && bun run lint && bun run build && bun run pm2:run"
   },
   "dependencies": {
     "axios": "^1.2.1",

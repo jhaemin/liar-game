@@ -26,7 +26,7 @@ export type ServerToClientEvents = {
 export type ClientToServerEvents = {
   joinRoom: (sessionId: string, roomId: string, name: string) => void
   nextPhase: (mode?: 'default' | 'fool') => void
-  askIfImLiar: (sessionId: string) => void
+  askIfImLiar: () => void
 
   revealLiar: () => void
   updateMode: (mode: 'default' | 'fool') => void
@@ -43,7 +43,8 @@ export type InterServerEvents = {
  * Socket data
  */
 export type SocketData = {
-  roomId: string
+  roomId?: string
+  sessionId?: string
 }
 
 export type GameSocketServer = SocketServer<

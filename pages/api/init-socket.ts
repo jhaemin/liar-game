@@ -1,9 +1,15 @@
 import type { NextApiRequest } from 'next'
 import { Server as SocketServer } from 'socket.io'
 import keywords, { type Subject } from '@/data/keywords'
-import cleanInactiveRooms from '@/modules/node/clean-inactive-rooms'
 import { getRoom, setRoom } from '@/modules/node/redis'
+import withRoomLock from '@/modules/node/room-lock'
 import { isDev } from '@/modules/shared/is'
+import {
+  joinRoomSchema,
+  MAX_NAME_LENGTH,
+  MAX_PLAYERS,
+  modeSchema,
+} from '@/modules/shared/schema'
 import type { NextApiResponseExtended } from '@/types/next'
 import type { GameSocket, GameSocketServer } from '@/types/socket'
 
@@ -16,137 +22,198 @@ const createSocketListener =
         return
       }
 
-      const room = await getRoom(roomId)
+      await withRoomLock(roomId, async () => {
+        const room = await getRoom(roomId)
 
-      if (!room) {
+        if (!room) {
+          return
+        }
+
+        const playerIndex = room.players.findIndex(
+          ({ socketId }) => socketId === socket.id
+        )
+
+        if (playerIndex === -1) {
+          return
+        }
+
+        room.players.splice(playerIndex, 1)
+
+        await setRoom(room)
+
+        io.to(`liarGame:room:${roomId}`).emit(
+          'updatePlayers',
+          room.players.map(({ socketId, name }) => ({
+            id: socketId,
+            name,
+          }))
+        )
+
+        io.to(`liarGame:room:${roomId}`).emit('phase', room.phase)
+      })
+    })
+
+    socket.on('joinRoom', async (...args) => {
+      // A socket can only join a single room once
+      if (socket.data.roomId) {
         return
       }
 
-      const playerIndex = room.players.findIndex(
-        ({ socketId }) => socketId === socket.id
-      )
-      room.players.splice(playerIndex, 1)
+      const [sessionId, roomId, name] = args
+      const parsed = joinRoomSchema.safeParse({ sessionId, roomId, name })
 
-      await setRoom(room)
-
-      io.to(`liarGame:room:${roomId}`).emit(
-        'updatePlayers',
-        room.players.map(({ socketId, name }) => ({
-          id: socketId,
-          name,
-        }))
-      )
-
-      io.to(`liarGame:room:${roomId}`).emit('phase', room.phase)
-    })
-
-    socket.on('joinRoom', async (sessionId, roomId, name) => {
-      const room = await getRoom(roomId)
-
-      if (!room) {
+      if (!parsed.success) {
         socket.emit('joinRoomFailed')
         return
       }
 
-      const trimmedName = name.trim()
+      const trimmedName = parsed.data.name.trim()
 
       if (trimmedName.length === 0) {
         socket.emit('error', '이름을 입력해주세요.')
         return
       }
 
-      socket.join(`liarGame:room:${roomId}`)
-      socket.data.roomId = roomId
+      if (trimmedName.length > MAX_NAME_LENGTH) {
+        socket.emit('error', `이름은 ${MAX_NAME_LENGTH}자 이하로 입력해주세요.`)
+        return
+      }
 
-      room.players.push({
-        socketId: socket.id,
-        sessionId,
-        name: trimmedName,
+      // Claim synchronously so that duplicate joinRoom events are ignored
+      socket.data.roomId = parsed.data.roomId
+
+      const joined = await withRoomLock(parsed.data.roomId, async () => {
+        const room = await getRoom(parsed.data.roomId)
+
+        if (!room) {
+          socket.emit('joinRoomFailed')
+          return false
+        }
+
+        // Disconnected while waiting for the lock
+        if (!socket.connected) {
+          return false
+        }
+
+        // Reconnecting player replaces their stale entry instead of duplicating
+        room.players = room.players.filter(
+          (player) => player.sessionId !== parsed.data.sessionId
+        )
+
+        if (room.players.length >= MAX_PLAYERS) {
+          socket.emit('joinRoomFailed')
+          return false
+        }
+
+        socket.join(`liarGame:room:${room.id}`)
+        socket.data.sessionId = parsed.data.sessionId
+
+        room.players.push({
+          socketId: socket.id,
+          sessionId: parsed.data.sessionId,
+          name: trimmedName,
+        })
+        room.lastUpdatedAt = Date.now()
+
+        await setRoom(room)
+
+        io.to(`liarGame:room:${room.id}`).emit(
+          'updatePlayers',
+          room.players.map(({ socketId, name }) => ({
+            id: socketId,
+            name,
+          }))
+        )
+
+        io.to(`liarGame:room:${room.id}`).emit('phase', room.phase)
+        socket.emit('updateMode', room.mode ?? 'default')
+
+        return true
       })
-      room.lastUpdatedAt = Date.now()
 
-      await setRoom(room)
-
-      io.to(`liarGame:room:${roomId}`).emit(
-        'updatePlayers',
-        room.players.map(({ socketId, name }) => ({
-          id: socketId,
-          name,
-        }))
-      )
-
-      io.to(`liarGame:room:${roomId}`).emit('phase', room.phase)
+      if (!joined) {
+        socket.data.roomId = undefined
+      }
     })
 
-    socket.on('nextPhase', async (mode: 'default' | 'fool' = 'default') => {
+    socket.on('nextPhase', async (mode = 'default') => {
       const { roomId } = socket.data
+      const parsedMode = modeSchema.safeParse(mode)
 
-      if (!roomId) {
+      if (!roomId || !parsedMode.success) {
         return
       }
 
-      const room = await getRoom(roomId)
+      await withRoomLock(roomId, async () => {
+        const room = await getRoom(roomId)
 
-      if (!room) {
-        return
-      }
-
-      room.lastUpdatedAt = Date.now()
-
-      if (room.phase === 'waiting') {
-        const liar =
-          room.players[Math.floor(Math.random() * room.players.length)]
-        const subjects = Object.keys(keywords)
-        const subject = subjects[
-          Math.floor(Math.random() * subjects.length)
-        ] as Subject
-        const keyword =
-          keywords[subject][
-            Math.floor(Math.random() * keywords[subject].length)
-          ]
-
-        room.phase = 'playing'
-        room.liar = {
-          sessionId: liar.sessionId,
-          name: liar.name,
-        }
-        room.subject = subject
-        room.keyword = keyword
-        room.mode = mode
-
-        if (mode === 'fool') {
-          const otherKeywords = keywords[subject].filter((k) => k !== keyword)
-          room.liarKeyword =
-            otherKeywords[Math.floor(Math.random() * otherKeywords.length)]
+        if (!room || room.players.length === 0) {
+          return
         }
 
-        cleanInactiveRooms()
-      } else if (room.phase === 'playing') {
-        room.phase = 'ended'
-      } else if (room.phase === 'ended') {
-        room.phase = 'waiting'
-        room.liar = null
-        room.subject = null
-        room.keyword = null
-        room.mode = undefined
-        room.liarKeyword = null
-      }
+        room.lastUpdatedAt = Date.now()
 
-      await setRoom(room)
+        if (room.phase === 'waiting') {
+          const liar =
+            room.players[Math.floor(Math.random() * room.players.length)]
+          const subjects = Object.keys(keywords)
+          const subject = subjects[
+            Math.floor(Math.random() * subjects.length)
+          ] as Subject
+          const keyword =
+            keywords[subject][
+              Math.floor(Math.random() * keywords[subject].length)
+            ]
 
-      io.to(`liarGame:room:${roomId}`).emit('phase', room.phase)
+          room.phase = 'playing'
+          room.liar = {
+            sessionId: liar.sessionId,
+            name: liar.name,
+          }
+          room.subject = subject
+          room.keyword = keyword
+          room.mode = parsedMode.data
+          room.participants = room.players.map(({ sessionId }) => sessionId)
+
+          if (parsedMode.data === 'fool') {
+            const otherKeywords = keywords[subject].filter((k) => k !== keyword)
+            room.liarKeyword =
+              otherKeywords[Math.floor(Math.random() * otherKeywords.length)]
+          }
+        } else if (room.phase === 'playing') {
+          room.phase = 'ended'
+        } else if (room.phase === 'ended') {
+          room.phase = 'waiting'
+          room.liar = null
+          room.subject = null
+          room.keyword = null
+          room.mode = undefined
+          room.liarKeyword = null
+          room.participants = undefined
+        }
+
+        await setRoom(room)
+
+        io.to(`liarGame:room:${roomId}`).emit('phase', room.phase)
+      })
     })
 
-    socket.on('askIfImLiar', async (sessionId) => {
-      const { roomId } = socket.data
+    socket.on('askIfImLiar', async () => {
+      const { roomId, sessionId } = socket.data
 
-      if (!roomId) {
+      if (!roomId || !sessionId) {
         return
       }
 
       const room = await getRoom(roomId)
 
       if (!room || room.phase !== 'playing' || !room.liar) {
+        return
+      }
+
+      // Players who joined mid-game (e.g. the liar in a new tab) get nothing
+      // (rooms started before participants existed are left as they were)
+      if (room.participants && !room.participants.includes(sessionId)) {
         return
       }
 
@@ -167,10 +234,13 @@ const createSocketListener =
           })
         }
       } else {
+        const isLiar = room.liar.sessionId === sessionId
+
+        // Never send the keyword to the liar, even if the client hides it
         socket.emit('answerIfImLiar', {
-          isLiar: room.liar.sessionId === sessionId,
+          isLiar,
           subject,
-          keyword,
+          keyword: isLiar ? null : keyword,
         })
       }
     })
@@ -184,7 +254,13 @@ const createSocketListener =
 
       const room = await getRoom(roomId)
 
-      if (!room || !room.liar || !room.subject || !room.keyword) {
+      if (
+        !room ||
+        room.phase !== 'ended' ||
+        !room.liar ||
+        !room.subject ||
+        !room.keyword
+      ) {
         return
       }
 
@@ -198,23 +274,27 @@ const createSocketListener =
 
     socket.on('updateMode', async (mode) => {
       const { roomId } = socket.data
+      const parsedMode = modeSchema.safeParse(mode)
 
-      if (!roomId) {
+      if (!roomId || !parsedMode.success) {
         return
       }
 
-      const room = await getRoom(roomId)
+      await withRoomLock(roomId, async () => {
+        const room = await getRoom(roomId)
 
-      if (!room) {
-        return
-      }
+        // Changing the mode mid-game would change what askIfImLiar answers
+        if (!room || room.phase !== 'waiting') {
+          return
+        }
 
-      room.mode = mode
-      room.lastUpdatedAt = Date.now()
+        room.mode = parsedMode.data
+        room.lastUpdatedAt = Date.now()
 
-      await setRoom(room)
+        await setRoom(room)
 
-      io.to(`liarGame:room:${roomId}`).emit('updateMode', mode)
+        io.to(`liarGame:room:${roomId}`).emit('updateMode', parsedMode.data)
+      })
     })
   }
 
@@ -241,6 +321,7 @@ const SocketHandler = async (
   const io = new SocketServer(res.socket.server, {
     pingInterval: 25000,
     pingTimeout: 60000,
+    maxHttpBufferSize: 1e4,
   })
   const listener = createSocketListener(io)
 

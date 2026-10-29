@@ -10,6 +10,7 @@ import { io } from 'socket.io-client'
 import dialog from '@/modules/browser/dialog'
 import { getSessionId } from '@/modules/browser/storage'
 import { getRoom } from '@/modules/node/redis'
+import { MAX_NAME_LENGTH } from '@/modules/shared/schema'
 import type { Player } from '@/types/game'
 import type { RedisRoom } from '@/types/redis'
 import type { GameSocketClient } from '@/types/socket'
@@ -54,10 +55,15 @@ const Room = ({ isRoomAvailable }: RoomProps) => {
           '방에 입장할 수 없습니다. 만료된 방이거나 인원이 꽉 찼습니다.'
         )
         router.replace('/')
+        return false
       }
+
+      return true
     }
 
-    await init()
+    if (!(await init())) {
+      return
+    }
 
     const initialSocket: GameSocketClient = io({
       forceNew: true,
@@ -102,7 +108,7 @@ const Room = ({ isRoomAvailable }: RoomProps) => {
       setPhase(nextPhase)
 
       if (nextPhase === 'playing') {
-        initialSocket.emit('askIfImLiar', getSessionId())
+        initialSocket.emit('askIfImLiar')
       } else if (nextPhase === 'ended') {
         initialSocket.emit('revealLiar')
       } else {
@@ -168,6 +174,7 @@ const Room = ({ isRoomAvailable }: RoomProps) => {
                 onChange={(e) => {
                   setMyName(e.target.value)
                 }}
+                maxLength={MAX_NAME_LENGTH}
                 autoComplete="off"
                 autoCorrect="off"
                 autoCapitalize="off"
@@ -198,7 +205,18 @@ const Room = ({ isRoomAvailable }: RoomProps) => {
                       return
                     }
 
-                    const newRoomId = await createRoom()
+                    let newRoomId: string
+
+                    try {
+                      newRoomId = await createRoom()
+                    } catch (_err) {
+                      dialog().alert(
+                        '방을 만들 수 없습니다. 잠시 후 다시 시도해주세요.'
+                      )
+                      setIsEntering(false)
+                      return
+                    }
+
                     await router.replace(`/room/${newRoomId}`, undefined, {
                       shallow: true,
                     })

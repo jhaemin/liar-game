@@ -1,4 +1,25 @@
+import { nanoid } from 'nanoid'
 import dialog from './dialog'
+
+const VISITOR_ID_KEY = 'lg:visitor-id'
+
+/**
+ * Anonymous, random per-browser id used only to count unique visitors.
+ * Storage can be unavailable (private mode, blocked site data); the
+ * connection still counts, just not as a unique visitor.
+ */
+export const getVisitorId = () => {
+  try {
+    let id = localStorage.getItem(VISITOR_ID_KEY)
+    if (!id) {
+      id = nanoid()
+      localStorage.setItem(VISITOR_ID_KEY, id)
+    }
+    return id
+  } catch {
+    return undefined
+  }
+}
 
 export const setSessionId = (sessionId: string) => {
   return sessionStorage.setItem('sessionId', sessionId)

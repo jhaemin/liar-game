@@ -8,7 +8,7 @@ import { useEffect, useState } from 'react'
 import { Flipped, Flipper } from 'react-flip-toolkit'
 import { io } from 'socket.io-client'
 import dialog from '@/modules/browser/dialog'
-import { getSessionId } from '@/modules/browser/storage'
+import { getSessionId, getVisitorId } from '@/modules/browser/storage'
 import { getRoom } from '@/modules/node/redis'
 import { MAX_NAME_LENGTH } from '@/modules/shared/schema'
 import type { Player } from '@/types/game'
@@ -65,7 +65,9 @@ const Room = ({ isRoomAvailable }: RoomProps) => {
       return
     }
 
+    const visitorId = getVisitorId()
     const initialSocket: GameSocketClient = io({
+      query: visitorId ? { visitorId } : {},
       forceNew: true,
       reconnection: true,
       reconnectionDelay: 1000,

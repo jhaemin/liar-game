@@ -1,6 +1,7 @@
 import { Chance } from 'chance'
 import type { NextApiRequest } from 'next'
 import { setRoom } from '@/modules/node/redis'
+import { incrementDaily } from '@/modules/node/stats'
 import type { NextApiHandlerExtended } from '@/types/next'
 import type { RedisRoom } from '@/types/redis'
 
@@ -83,6 +84,7 @@ const handler: NextApiHandlerExtended<CreateRoomResponseData> = async (
   }
 
   await setRoom(roomData)
+  incrementDaily('roomsCreated')
 
   res.json({ roomId })
 }

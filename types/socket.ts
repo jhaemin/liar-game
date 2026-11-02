@@ -45,6 +45,8 @@ export type InterServerEvents = {
 export type SocketData = {
   roomId?: string
   sessionId?: string
+  /** Anonymous per-browser id, only for counting unique visitors */
+  visitorId?: string | null
 }
 
 export type GameSocketServer = SocketServer<

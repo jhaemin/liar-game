@@ -3,6 +3,13 @@ import { Server as SocketServer } from 'socket.io'
 import keywords, { type Subject } from '@/data/keywords'
 import { getRoom, setRoom } from '@/modules/node/redis'
 import withRoomLock from '@/modules/node/room-lock'
+import {
+  incrementDaily,
+  parseVisitorId,
+  recordConnection,
+  recordJoin,
+  setStatsIo,
+} from '@/modules/node/stats'
 import { isDev } from '@/modules/shared/is'
 import {
   joinRoomSchema,
@@ -15,6 +22,9 @@ import type { GameSocket, GameSocketServer } from '@/types/socket'
 
 const createSocketListener =
   (io: GameSocketServer) => async (socket: GameSocket) => {
+    socket.data.visitorId = parseVisitorId(socket.handshake.query.visitorId)
+    recordConnection(socket.data.visitorId)
+
     socket.on('disconnect', async () => {
       const { roomId } = socket.data
 
@@ -128,6 +138,8 @@ const createSocketListener =
         io.to(`liarGame:room:${room.id}`).emit('phase', room.phase)
         socket.emit('updateMode', room.mode ?? 'default')
 
+        recordJoin(socket.data.visitorId ?? null)
+
         return true
       })
 
@@ -174,6 +186,7 @@ const createSocketListener =
           room.keyword = keyword
           room.mode = parsedMode.data
           room.participants = room.players.map(({ sessionId }) => sessionId)
+          incrementDaily('rounds')
 
           if (parsedMode.data === 'fool') {
             const otherKeywords = keywords[subject].filter((k) => k !== keyword)
@@ -326,6 +339,7 @@ const SocketHandler = async (
   const listener = createSocketListener(io)
 
   io.on('connection', listener)
+  setStatsIo(io)
 
   res.socket.server.io = io
   res.socket.server.listener = listener
